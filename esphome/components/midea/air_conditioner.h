@@ -1,18 +1,18 @@
 #pragma once
 
-#ifdef USE_ARDUINO
+#if (defined(USE_ARDUINO) && !defined(USE_RP2) && !defined(USE_LIBRETINY)) || defined(USE_ESP_IDF)
 
 // MideaUART
 #include <Appliance/AirConditioner/AirConditioner.h>
 
 #include "appliance_base.h"
 #include "esphome/components/sensor/sensor.h"
+#include "esphome/components/switch/switch.h"
 
-namespace esphome {
-namespace midea {
-namespace ac {
+namespace esphome::midea::ac {
 
 using sensor::Sensor;
+using switch_::Switch;
 using climate::ClimateCall;
 using climate::ClimatePreset;
 using climate::ClimateTraits;
@@ -23,12 +23,23 @@ using climate::ClimateModeMask;
 using climate::ClimateSwingModeMask;
 using climate::ClimatePresetMask;
 
-class AirConditioner : public ApplianceBase<dudanov::midea::ac::AirConditioner>, public climate::Climate {
+// Channel used to toggle the appliance display. Many appliances accept the UART request without advertising
+// supportLightControl() in their 0xB5 capabilities report, so AUTO is not the default.
+enum class DisplayControl : uint8_t {
+  UART,  // always use the UART request
+  AUTO,  // use UART when the appliance reports support, IR otherwise
+  IR,    // always use the IR remote
+};
+
+class AirConditioner final : public ApplianceBase<dudanov::midea::ac::AirConditioner>, public climate::Climate {
  public:
   void dump_config() override;
   void set_outdoor_temperature_sensor(Sensor *sensor) { this->outdoor_sensor_ = sensor; }
   void set_humidity_setpoint_sensor(Sensor *sensor) { this->humidity_sensor_ = sensor; }
   void set_power_sensor(Sensor *sensor) { this->power_sensor_ = sensor; }
+  void set_display_light_switch(Switch *switch_) { this->display_light_switch_ = switch_; }
+  void set_display_control(DisplayControl control) { this->display_control_ = control; }
+  bool get_display_light_state() const { return this->base_.getLight() == dudanov::midea::ac::Display::DISPLAY_ON; }
   void on_status_change() override;
 
   /* ############### */
@@ -46,8 +57,8 @@ class AirConditioner : public ApplianceBase<dudanov::midea::ac::AirConditioner>,
   void set_supported_modes(ClimateModeMask modes) { this->supported_modes_ = modes; }
   void set_supported_swing_modes(ClimateSwingModeMask modes) { this->supported_swing_modes_ = modes; }
   void set_supported_presets(ClimatePresetMask presets) { this->supported_presets_ = presets; }
-  void set_custom_presets(std::initializer_list<const char *> presets) { this->supported_custom_presets_ = presets; }
-  void set_custom_fan_modes(std::initializer_list<const char *> modes) { this->supported_custom_fan_modes_ = modes; }
+  void set_custom_presets(std::initializer_list<const char *> presets) { this->set_supported_custom_presets(presets); }
+  void set_custom_fan_modes(std::initializer_list<const char *> modes) { this->set_supported_custom_fan_modes(modes); }
 
  protected:
   void control(const ClimateCall &call) override;
@@ -55,15 +66,14 @@ class AirConditioner : public ApplianceBase<dudanov::midea::ac::AirConditioner>,
   ClimateModeMask supported_modes_{};
   ClimateSwingModeMask supported_swing_modes_{};
   ClimatePresetMask supported_presets_{};
-  std::vector<const char *> supported_custom_presets_{};
-  std::vector<const char *> supported_custom_fan_modes_{};
+  bool frost_protection_set_{false};
+  DisplayControl display_control_{DisplayControl::UART};
   Sensor *outdoor_sensor_{nullptr};
   Sensor *humidity_sensor_{nullptr};
   Sensor *power_sensor_{nullptr};
+  Switch *display_light_switch_{nullptr};
 };
 
-}  // namespace ac
-}  // namespace midea
-}  // namespace esphome
+}  // namespace esphome::midea::ac
 
-#endif  // USE_ARDUINO
+#endif  // USE_ARDUINO || USE_ESP_IDF

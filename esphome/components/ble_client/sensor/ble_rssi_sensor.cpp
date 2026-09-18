@@ -6,8 +6,7 @@
 
 #ifdef USE_ESP32
 
-namespace esphome {
-namespace ble_client {
+namespace esphome::ble_client {
 
 static const char *const TAG = "ble_rssi_sensor";
 
@@ -48,6 +47,8 @@ void BLEClientRSSISensor::gap_event_handler(esp_gap_ble_cb_event_t event, esp_bl
   switch (event) {
     // server response on RSSI request:
     case ESP_GAP_BLE_READ_RSSI_COMPLETE_EVT:
+      if (!this->parent()->check_addr(param->read_rssi_cmpl.remote_addr))
+        return;
       if (param->read_rssi_cmpl.status == ESP_BT_STATUS_SUCCESS) {
         int8_t rssi = param->read_rssi_cmpl.rssi;
         ESP_LOGI(TAG, "ESP_GAP_BLE_READ_RSSI_COMPLETE_EVT RSSI: %d", rssi);
@@ -78,6 +79,5 @@ void BLEClientRSSISensor::get_rssi_() {
   }
 }
 
-}  // namespace ble_client
-}  // namespace esphome
+}  // namespace esphome::ble_client
 #endif

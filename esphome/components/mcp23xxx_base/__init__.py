@@ -1,10 +1,12 @@
 from esphome import pins
 import esphome.codegen as cg
+from esphome.components import gpio_expander
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
     CONF_INPUT,
     CONF_INTERRUPT,
+    CONF_INTERRUPT_PIN,
     CONF_INVERTED,
     CONF_MODE,
     CONF_NUMBER,
@@ -29,9 +31,11 @@ MCP23XXX_INTERRUPT_MODES = {
     "FALLING": MCP23XXXInterruptMode.MCP23XXX_FALLING,
 }
 
+
 MCP23XXX_CONFIG_SCHEMA = cv.Schema(
     {
         cv.Optional(CONF_OPEN_DRAIN_INTERRUPT, default=False): cv.boolean,
+        cv.Optional(CONF_INTERRUPT_PIN): gpio_expander.validate_interrupt_pin,
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -43,6 +47,8 @@ async def register_mcp23xxx(config, num_pins):
     await cg.register_component(var, config)
     CORE.data.setdefault(CONF_MCP23XXX, {})[id.id] = num_pins
     cg.add(var.set_open_drain_ints(config[CONF_OPEN_DRAIN_INTERRUPT]))
+    if interrupt_pin := config.get(CONF_INTERRUPT_PIN):
+        cg.add(var.set_interrupt_pin(await cg.gpio_pin_expression(interrupt_pin)))
     return var
 
 
