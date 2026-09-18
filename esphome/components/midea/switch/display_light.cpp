@@ -9,8 +9,9 @@ void DisplayLightSwitch::write_state(bool state) {
     this->publish_state(false);
     return;
   }
-
-  this->parent_->do_display_toggle();
+  if (!this->has_state() || state != this->state) {
+    this->parent_->do_display_toggle();
+  }
   this->publish_state(state);
 }
 
