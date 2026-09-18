@@ -78,9 +78,9 @@ void AirConditioner::on_status_change() {
 
   if (this->mode == ClimateMode::CLIMATE_MODE_OFF) {
     set_switch(this->display_light_switch_, false);
-  } else {
-    set_switch(this->display_light_switch_, get_display_light_state());
-  }
+  } 
+  // This appliance doesn't report display state in its status frame,
+  // so don't overwrite the switch's optimistic state otherwise.
 }
 
 void AirConditioner::control(const ClimateCall &call) {
