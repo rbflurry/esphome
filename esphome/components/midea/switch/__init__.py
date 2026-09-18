@@ -20,7 +20,7 @@ CONFIG_SCHEMA = cv.Schema(
             icon=ICON_BRIGHTNESS_6,
             entity_category=ENTITY_CATEGORY_CONFIG,
             # The appliance reports the display state, so there is nothing to restore.
-            default_restore_mode="DISABLED",
+            default_restore_mode="RESTORE_DEFAULT_ON",
         ),
     }
 )
